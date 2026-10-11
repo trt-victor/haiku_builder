@@ -118,31 +118,75 @@ function activate(n) {
   moveTo(n);
 }
 
-// ---- laws (top panel) ----
-const LAW_TAGS = { syllables: "5-7-5", "no-weather": "Weather", "no-atmosphere": "Sky" };
+// ---- laws: top-panel status rows, detail modal, and the laws view (read / switch / create) ----
+const TIERS = ["Finding", "Ruling", "Local Statute", "State Constitution", "Federal Accord"];
+let LAWS = [], current = { laws: [], stamps: {}, feedback: [] };
+const enabledLaws = () => LAWS.filter((l) => l.enabled);
+const lawById = (id) => LAWS.find((l) => l.id === id) || current.laws.find((l) => l.id === id);
 function drawLaws(laws, stamps = {}, feedback = [], approved = false) {
+  current = { laws, stamps, feedback };
   const ul = $("lawlist"); ul.innerHTML = "";
-  const row = (cls, tag, st, title, desc) => {
+  const row = (cls, tag, st, title, desc, id) => {
     const li = document.createElement("li"); li.className = cls;
     li.innerHTML = `<div class="tag">${tag}<small>${st}</small></div><div><b></b><span></span></div>`;
-    li.querySelector("b").textContent = title; li.querySelector("span").textContent = desc; ul.append(li);
+    li.querySelector("b").textContent = title; li.querySelector("span").textContent = desc;
+    if (id) li.onclick = () => openLaw(id);
+    ul.append(li);
   };
   for (const l of laws) {
     const open = feedback.filter((f) => f.law === l.id && f.status === "open");
     const st = stamps[l.id] ? "ok" : open.length ? "bad" : "";
-    row(st, LAW_TAGS[l.id] || l.name, st === "ok" ? "attested" : st === "bad" ? "violated" : "pending", l.name, open[0]?.text || l.text);
+    row(st, l.tag || l.id, st === "ok" ? "attested" : st === "bad" ? "violated" : "pending", l.id, open[0]?.text || l.goal, l.id);
   }
   row("approval" + (approved ? " ok" : ""), "Approval", approved ? "stamped" : "waiting", "Exit contract", "Sort stamps approval once every law is attested.");
 }
-const DEFAULT_LAWS = () => [
-  { id: "syllables", name: "5-7-5", text: "Three lines of 5, 7 and 5 syllables." },
-  ...($("laws").checked ? [{ id: "no-weather", name: "no-weather", text: "No meteorological references." }, { id: "no-atmosphere", name: "no-atmosphere", text: "No atmospheric or sky references." }] : []),
-];
+function openLaw(id) {
+  const l = lawById(id); if (!l) return;
+  const st = current.stamps[id] ? "✓ Attested on the current version" : current.feedback.some((f) => f.law === id && f.status === "open") ? "✕ Violated — feedback is open" : "Pending";
+  $("lm-tag").textContent = l.tag || l.id; $("lm-id").textContent = l.id; $("lm-goal").textContent = l.goal;
+  $("lm-meta").textContent = `Tier ${l.tier} · ${TIERS[l.tier - 1]} · group ${l.group} · applies to haiku · checked by ${l.by === "quench" ? "Quench (code)" : "Appraisal (LLM)"}`;
+  $("lm-text").textContent = l.text; $("lm-status").textContent = current.laws.some((x) => x.id === id) ? st : "Not part of a run yet";
+  $("lawmodal").hidden = false;
+}
+$("lm-close").onclick = () => ($("lawmodal").hidden = true);
+$("lawmodal").onclick = (e) => e.target === $("lawmodal") && ($("lawmodal").hidden = true);
+
+async function loadLaws(r) {
+  LAWS = r || (await (await fetch("/api/laws")).json());
+  $("lawcount").textContent = `${enabledLaws().length} of ${LAWS.length} in force — read, switch off, or write your own`;
+  if ($("run").hidden) drawLaws(enabledLaws());
+  drawLawCards();
+}
+const lawsApi = async (opts, q = "") => { const r = await (await fetch("/api/laws" + q, opts)).json(); if (r.error) throw new Error(r.error); return loadLaws(r); };
+function drawLawCards() {
+  const box = $("lawcards"), open = new Set([...box.querySelectorAll(".lc.open")].map((e) => e.dataset.id));
+  box.innerHTML = "";
+  for (const l of LAWS) {
+    const d = document.createElement("div"); d.dataset.id = l.id;
+    d.className = `lc glass${l.enabled ? " on" : ""}${l.locked ? " lock" : ""}${open.has(l.id) ? " open" : ""}`;
+    d.innerHTML = `<div class="lc-h"><div class="tg"></div><div class="nm"><b></b><span></span></div><span class="tier">T${l.tier}</span><span class="sw"></span></div><div class="lc-b" hidden></div>`;
+    d.querySelector(".tg").textContent = l.tag || l.id; d.querySelector("b").textContent = l.id; d.querySelector(".nm span").textContent = l.goal;
+    const body = d.querySelector(".lc-b"); body.textContent = l.text + (l.locked ? "\n\n(Always in force: Quench checks it in code.)" : "");
+    body.hidden = !open.has(l.id);
+    if (l.custom) { const x = document.createElement("button"); x.type = "button"; x.textContent = "Delete this law"; x.onclick = (e) => { e.stopPropagation(); lawsApi({ method: "DELETE" }, "?id=" + encodeURIComponent(l.id)); }; body.append(document.createElement("br"), x); }
+    d.querySelector(".sw").onclick = (e) => { e.stopPropagation(); if (!l.locked) lawsApi({ method: "POST", body: JSON.stringify({ toggle: l.id, enabled: !l.enabled }) }); };
+    d.onclick = () => { body.hidden = !body.hidden; d.classList.toggle("open", !body.hidden); };
+    box.append(d);
+  }
+}
+let nlTier = 3;
+for (let t = 1; t <= 5; t++) { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.title = TIERS[t - 1]; b.className = t === nlTier ? "on" : ""; b.onclick = () => { nlTier = t; [...$("nl-tier").children].forEach((c, i) => c.classList.toggle("on", i + 1 === t)); }; $("nl-tier").append(b); }
+$("newlaw").onsubmit = async (e) => {
+  e.preventDefault(); $("nl-err").textContent = "";
+  try { await lawsApi({ method: "POST", body: JSON.stringify({ goal: $("nl-goal").value, text: $("nl-text").value, tier: nlTier }) }); $("nl-goal").value = $("nl-text").value = ""; $("lawcards").scrollTop = 1e6; }
+  catch (err) { $("nl-err").textContent = err.message; }
+};
+$("openlaws").onclick = () => { $("start").hidden = true; $("lawsview").hidden = false; };
+$("lawsback").onclick = () => { $("lawsview").hidden = true; $("start").hidden = false; };
 function idle() {
   activate("sort"); $("where-kicker").textContent = "Waiting for a theme"; $("where-msg").textContent = "Chat or pick a theme below to start the loop.";
-  drawLaws(DEFAULT_LAWS());
+  drawLaws(enabledLaws());
 }
-$("laws").onchange = () => $("run").hidden && drawLaws(DEFAULT_LAWS());
 
 // ---- run ----
 let es;
@@ -153,7 +197,7 @@ function go(theme) {
   $("lines").innerHTML = $("verdict").innerHTML = $("trail").innerHTML = $("fb").innerHTML = "";
   $("verdict").className = ""; $("where-msg").textContent = "Starting…"; $("where-kicker").textContent = "Iteration 0"; $("iter").textContent = "Iteration 0";
   let laws = [];
-  es = new EventSource(`/api/run?theme=${encodeURIComponent(theme)}&laws=${$("laws").checked ? "on" : "off"}`);
+  es = new EventSource(`/api/run?theme=${encodeURIComponent(theme)}`);
   es.onmessage = ({ data }) => {
     const e = JSON.parse(data);
     if (e.type === "start") { laws = e.laws; drawLaws(laws); }
@@ -194,4 +238,4 @@ function render(s, laws) {
   });
   drawLaws(laws, s.stamps, s.feedback);
 }
-idle();
+idle(); loadLaws();

@@ -13,6 +13,7 @@
 <!-- 1080 × 3840 kiosk: two 1080 × 1920 panels, seam between. Scaled to fit the viewport (?fit=0 for 1:1, ?seam=0 hides the seam). -->
 <div id="stage">
   <section class="panel" id="top">
+    <div id="lawmodal" hidden><div class="glass"><div class="lm-top"><b id="lm-tag"></b><button type="button" id="lm-close">Close</button></div><h3 id="lm-id"></h3><p id="lm-goal"></p><p id="lm-meta"></p><pre id="lm-text"></pre><p id="lm-status"></p></div></div>
     <header class="head">
       <h1>Lab</h1>
       <div class="date" id="date"></div>
@@ -41,8 +42,19 @@
         <input id="theme" placeholder="Tell me what it should be about…" maxlength="300" enterkeyhint="send">
         <button class="primary" type="submit">Send</button>
       </form>
-      <label class="toggle glass" id="lawtoggle"><input type="checkbox" id="laws" checked><span class="sw"></span>
-        <span><b>Content laws on</b><small>no-weather · no-atmosphere. Try a stormy theme to start a fight.</small></span></label>
+      <button type="button" id="openlaws" class="glass lawsbtn"><span><b>Laws</b><small id="lawcount"></small></span><span class="chev">›</span></button>
+    </div>
+    <!-- laws: read, switch on/off, create your own -->
+    <div id="lawsview" hidden>
+      <div class="lv-head"><p class="eyebrow">Foundry plugin · laws</p><button type="button" id="lawsback">‹ Back</button></div>
+      <div id="lawcards"></div>
+      <form id="newlaw" class="glass" autocomplete="off">
+        <h3>Write your own law</h3>
+        <input id="nl-goal" placeholder="Goal, e.g. No mention of animals" maxlength="200">
+        <textarea id="nl-text" placeholder="Say what is prohibited or required, with examples. The appraiser will judge every haiku against this text."></textarea>
+        <div class="nl-row"><div id="nl-tier" class="tiers"></div><button class="primary" type="submit">Add law</button></div>
+        <small id="nl-err"></small>
+      </form>
     </div>
     <!-- the foundry working -->
     <div id="run" hidden>
