@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Foundry Lab — the haiku loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- 1080 × 3840 kiosk: two 1080 × 1920 panels, seam between. Scaled to fit the viewport (?fit=0 for 1:1, ?seam=0 hides the seam). -->
+<div id="stage">
+  <section class="panel" id="top">
+    <header class="head">
+      <h1>Lab</h1>
+      <div class="date" id="date"></div>
+    </header>
+    <div class="glass hero">
+      <p class="eyebrow">Foundry · governed loop</p>
+      <h2>Every haiku is <em>forged</em>, <em>checked</em>, <em>judged</em> and <em>refined</em> before it is approved.</h2>
+    </div>
+    <div class="loop">
+      <svg id="loopsvg" viewBox="0 0 936 700" role="img" aria-label="The Foundry loop"></svg>
+    </div>
+    <div class="glass where"><i id="where-dot"></i><div><small id="where-kicker">Waiting for a theme</small><b id="where-msg">Choose a theme below to start the loop.</b></div></div>
+    <ul id="lawlist" class="laws"></ul>
+  </section>
+
+  <div class="seam"></div>
+
+  <section class="panel" id="bottom">
+    <!-- chat / theme picker -->
+    <div id="start">
+      <p class="eyebrow">Foundry plugin · chat</p>
+      <div id="chat"></div>
+      <div class="themes" id="themes"></div>
+      <button id="go" class="primary" hidden>Forge my haiku</button>
+      <form id="ask" autocomplete="off">
+        <input id="theme" placeholder="Tell me what it should be about…" maxlength="300" enterkeyhint="send">
+        <button class="primary" type="submit">Send</button>
+      </form>
+      <label class="toggle glass" id="lawtoggle"><input type="checkbox" id="laws" checked><span class="sw"></span>
+        <span><b>Content laws on</b><small>no-weather · no-atmosphere. Try a stormy theme to start a fight.</small></span></label>
+    </div>
+    <!-- the foundry working -->
+    <div id="run" hidden>
+      <p class="eyebrow">Foundry plugin · <span id="theme-chip"></span></p>
+      <div class="glass card"><div class="lab"><b>Artefact</b><small id="iter">Iteration 0</small></div>
+        <div class="body"><div id="lines"></div><div id="verdict"></div></div></div>
+      <div class="glass card"><div class="lab"><b>Feedback</b><small>from the laws</small></div>
+        <div class="body"><ul id="fb"></ul></div></div>
+      <div class="glass card grow"><div class="lab"><b>Trail</b><small>every routing step</small></div>
+        <div class="body"><ol id="trail"></ol></div></div>
+      <button id="again" class="primary" hidden>New haiku</button>
+    </div>
+  </section>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
