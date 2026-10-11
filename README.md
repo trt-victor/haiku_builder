@@ -7,13 +7,14 @@ Modelled on the haiku flow in https://github.com/really-knows-ai/gideas (5-7-5 +
 
 ## Run
 ```bash
-cd foundry-haiku && npm start     # http://localhost:4173 — open full screen on the touch display
+cd foundry-haiku && npm start     # http://localhost:4175 — open full screen on the touch display
 npm test                          # syllable counter self-check
 ```
-Needs the `claude` CLI logged in (no API key). `FOUNDRY_MODEL=sonnet npm start` changes the model (default `haiku`); `PORT=...` changes the port.
+Default backend is local **Ollama + Mistral** (`ollama pull mistral`), served on port **4175**, bound to `0.0.0.0` so another screen on the network can open `http://<this-mac-ip>:4175`. The server prints both URLs and warns at startup if Ollama or the model is missing.
+`FOUNDRY_MODEL=gemma4:12b npm start` swaps the model; `FOUNDRY_BACKEND=claude` uses the `claude` CLI instead (model default `haiku`); `PORT`, `HOST`, `OLLAMA_URL` are also honoured.
 
 ## What is real
-- **Forge, Refine, Appraisal** — real LLM calls (`claude -p`, no tools).
+- **Forge, Refine, Appraisal, chat** — real LLM calls (Ollama by default).
 - **Quench** — deterministic syllable counter (`syllables.js`), as in the real flow.
 - **Sort** — real routing logic in `server.js`: open feedback → Refine; no syllable stamp → Quench; missing law stamps → Appraisal; all stamps + no feedback → approval. Any revision voids all stamps. Iteration limit 6.
 - Not real: the Kubernetes runtime, cryptographic stamps, multi-appraiser quorum.
